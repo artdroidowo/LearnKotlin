@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Search Wiki</string>
+    <string name="search">Search</string>
+    <plurals name="results_found">
+        <item quantity="zero">%d results found</item>
+        <item quantity="one">%d result found</item>
+        <item quantity="other">%d results found</item>
+    </plurals>
+</resources>
