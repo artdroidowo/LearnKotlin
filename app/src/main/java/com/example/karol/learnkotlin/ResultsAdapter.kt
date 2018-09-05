@@ -1,7 +1,6 @@
 package com.example.karol.learnkotlin
 
 import android.content.Intent
-import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.widget.RecyclerView
 import android.text.Html
 import android.view.LayoutInflater
@@ -10,7 +9,7 @@ import android.view.ViewGroup
 import com.example.karol.learnkotlin.model.Search
 import kotlinx.android.synthetic.main.row_search.view.*
 
-class ResultsAdapter(var search: MutableList<Search>, val activity: MainActivity) : RecyclerView.Adapter<ViewHolder>() {
+class ResultsAdapter(var search: MutableList<Search>, private val activity: MainActivity) : RecyclerView.Adapter<ViewHolder>() {
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         var description = search[position].snippet
