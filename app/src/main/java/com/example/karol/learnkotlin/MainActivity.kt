@@ -9,6 +9,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import com.example.karol.learnkotlin.model.SearchedRecords
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
@@ -49,53 +50,61 @@ class MainActivity : AppCompatActivity() {
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(
-                                { result ->
-                                    var continueS = result._continue._continue
-                                    var offset = result._continue.sroffset
-                                    var searchS = srsearch
+                                handleResponse(srsearch, manager)
+                        ) { _ ->
+                            pb_fetch.visibility = View.GONE
+                            Toast.makeText(this,
+                                    "Something went wrong try again",
+                                    Toast.LENGTH_SHORT).show()
+                        }
+    }
 
+    private fun handleResponse(srsearch: String, manager: LinearLayoutManager): (SearchedRecords) -> Unit {
+        return { result ->
+            var continueS = result._continue._continue
+            var offset = result._continue.sroffset
+            var searchS = srsearch
+
+            pb_fetch.visibility = View.GONE
+            rv_results.adapter = ResultsAdapter(result.query.search, this)
+            tv_search_results.text =
+                    String.format(resources.getQuantityText(R.plurals.results_found,
+                            result.query.searchinfo.totalhits).toString(), result.query.searchinfo.totalhits)
+            rv_results.addOnScrollListener(OnWikiScrollListener(manager, continueS, offset, searchS))
+        }
+    }
+
+    private fun OnWikiScrollListener(manager: LinearLayoutManager, continueS: String, offset: Int, searchS: String): RecyclerView.OnScrollListener {
+        var continueS1 = continueS
+        var offset1 = offset
+        return object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView?, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (!isLoading) {
+                    if (manager.findLastCompletelyVisibleItemPosition()
+                            >= rv_results.adapter.itemCount - 1) {
+                        isLoading = true
+                        pb_fetch.visibility = View.VISIBLE
+                        disposable = wikiApiServe.getMoreRecords("query", "json", "search", continueS1, offset1, searchS)
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe({ result ->
+                                    isLoading = false
+                                    continueS1 = result._continue._continue
+                                    offset1 = result._continue.sroffset
                                     pb_fetch.visibility = View.GONE
-                                    rv_results.adapter = ResultsAdapter(result.query.search, this)
-                                    tv_search_results.text =
-                                            String.format(resources.getQuantityText(R.plurals.results_found,
-                                                    result.query.searchinfo.totalhits).toString(), result.query.searchinfo.totalhits)
-                                    rv_results.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                                        override fun onScrolled(recyclerView: RecyclerView?, dx: Int, dy: Int) {
-                                            super.onScrolled(recyclerView, dx, dy)
-                                            if (!isLoading) {
-                                                if (manager.findLastCompletelyVisibleItemPosition()
-                                                        >= rv_results.adapter.itemCount - 1) {
-                                                    isLoading = true
-                                                    pb_fetch.visibility = View.VISIBLE
-//                                                    disposable?.dispose()
-                                                    disposable = wikiApiServe.getMoreRecords("query", "json", "search", continueS, offset, searchS)
-                                                            .subscribeOn(Schedulers.io())
-                                                            .observeOn(AndroidSchedulers.mainThread())
-                                                            .subscribe({ result ->
-                                                                isLoading = false
-                                                                        continueS = result._continue._continue
-                                                                        offset = result._continue.sroffset
-                                                                        pb_fetch.visibility = View.GONE
-                                                                        (rv_results.adapter as ResultsAdapter).addMore(result.query.search)
-                                                                    }, { _ ->
-                                                                isLoading = false
-                                                                pb_fetch.visibility = View.GONE
-                                                                Toast.makeText(this@MainActivity,
-                                                                        "Something went wrong try again",
-                                                                        Toast.LENGTH_SHORT).show()
-                                                            })
-                                                }
-                                            }
-                                        }
-                                    })
-                                },
-                                { _ ->
+                                    (rv_results.adapter as ResultsAdapter).addMore(result.query.search)
+                                }, { _ ->
+                                    isLoading = false
                                     pb_fetch.visibility = View.GONE
-                                    Toast.makeText(this,
+                                    Toast.makeText(this@MainActivity,
                                             "Something went wrong try again",
                                             Toast.LENGTH_SHORT).show()
-                                }
-                        )
+                                })
+                    }
+                }
+            }
+        }
     }
 
 }
