@@ -106,5 +106,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
+    override fun onPause() {
+        disposable?.dispose()
+        super.onPause()
+    }
 }
